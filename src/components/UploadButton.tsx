@@ -8,7 +8,7 @@ import {useRouter} from "next/navigation";
 import {api, inferenceEndPoint, uploadEndPoint} from '@/lib/axios'
 interface Props {
     isSubscribed?: boolean,
-    onResult: (data: InferenceResponse[]) => void,
+    onResult: (result: InferenceResponse | undefined, filePath: string) => void,
     onErrorResult: () => void,
 }
 
@@ -19,10 +19,10 @@ interface FileResponse {
 }
 
 export interface InferenceResponse {
-  name: string
-  label: string
-  confidence: number
+  boxes: number[][]
+  scores: number[]
   latency: number
+  output: string
 }
 const UploadDropzone: React.FC<Props> = ({ isSubscribed = false, onResult, onErrorResult }) => {
     const router = useRouter()
@@ -45,6 +45,7 @@ const UploadDropzone: React.FC<Props> = ({ isSubscribed = false, onResult, onErr
           },
         })
 
+      console.log("FileRes: ", res.data)
       return {
         file: res.data.file,
         content: res.data.content,
@@ -58,7 +59,7 @@ const UploadDropzone: React.FC<Props> = ({ isSubscribed = false, onResult, onErr
     return null
   }
 
-  const startInference = async (filename: string): Promise<InferenceResponse[]> => {
+  const startInference = async (filename: string): Promise<InferenceResponse | undefined> => {
       const body = {
         filename
       }
@@ -77,7 +78,7 @@ const UploadDropzone: React.FC<Props> = ({ isSubscribed = false, onResult, onErr
       } catch (e) {
         console.log("ERROR", e)
       }
-      return  []
+      return  undefined
   }
 
     const startSimulatedProgress = () => {
@@ -128,7 +129,7 @@ const UploadDropzone: React.FC<Props> = ({ isSubscribed = false, onResult, onErr
           const predictions = await startInference(file)
           setIsThinking(false)
 
-          if(predictions.length < 1) {
+          if(!predictions) {
             onErrorResult()
             return toast({
               title: 'Kesalahan Gambar',
@@ -137,7 +138,7 @@ const UploadDropzone: React.FC<Props> = ({ isSubscribed = false, onResult, onErr
             })
           }
 
-          onResult(predictions)
+          onResult(predictions, res.path)
 
 
 
@@ -161,11 +162,11 @@ const UploadDropzone: React.FC<Props> = ({ isSubscribed = false, onResult, onErr
             // startPolling({ key })
         }}>
             {({ getRootProps, getInputProps, acceptedFiles}) => (
-                <div {...getRootProps()} className="border h-64 m-4 border-dashed border-emerald-300 rounded-lg w-9/12">
+                <div {...getRootProps()} className="border h-64 m-4 border-dashed border-amber-300 rounded-lg w-9/12">
                     <div className="flex items-center justify-center h-full w-full">
                         <label
                             htmlFor="dropzone-file"
-                            className="flex flex-col items-center justify-center w-full h-full rounded-lg cursor-pointer bg-emerald-50 hover:bg-emerald-100"
+                            className="flex flex-col items-center justify-center w-full h-full rounded-lg cursor-pointer bg-amber-50 hover:bg-amber-100"
                         >
                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                 <Cloud className="h-6 w-6 text-zinc-500 mb-2" />
@@ -181,7 +182,7 @@ const UploadDropzone: React.FC<Props> = ({ isSubscribed = false, onResult, onErr
                             {acceptedFiles && acceptedFiles[0] ? (
                                 <div className="max-w-xs bg-white flex items-center rounded-md overflow-hidden outline outline-[1px] outline-zinc-200 divide-x divide-zinc-200">
                                     <div className="px-3 py-2 h-full grid place-items-center">
-                                        <File className="h-4 w-4 text-green-500" />
+                                        <File className="h-4 w-4 text-yellow-500" />
                                     </div>
                                     <div className="px-3 py-2 h-full text-sm truncate">
                                         {acceptedFiles[0].name}
@@ -192,7 +193,7 @@ const UploadDropzone: React.FC<Props> = ({ isSubscribed = false, onResult, onErr
                             {isUploading ? (
                                 <div className="w-full mt-4 max-w-xs mx-auto">
                                     <Progress
-                                        indicatorcolor={uploadProgress === 100 ? 'bg-green-500' : ''}
+                                        indicatorcolor={uploadProgress === 100 ? 'bg-yellow-500' : ''}
                                         value={uploadProgress}
                                         className="h-1 w-full bg-zinc-200"/>
                                     {uploadProgress === 100 && isThinking ? (

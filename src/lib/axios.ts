@@ -8,6 +8,6 @@ const api = axios.create({
 });
 
 const uploadEndPoint = "upload"
-const inferenceEndPoint = "predict"
+const inferenceEndPoint = "predict/pytorch"
 
 export  {baseURL, api, uploadEndPoint, inferenceEndPoint}
